@@ -1,0 +1,71 @@
+h1. jcr_image_custom
+
+Adds a single extra custom field of up to 255 characters to the "Content › Images":http://docs.textpattern.io/administration/images-panel panel and provides a corresponding tag to output the custom field.
+
+
+h2. Use cases
+
+Use whenever extra information needs to be stored with an image. For example:
+
+* Store a youtube/vimeo link or video-ID with an image for generating custom video poster images.
+* Store the download url of a corresponding hi-res press image not stored in txp.
+* …
+
+
+h2(#installation). Installation
+
+Paste the code into the  _Admin › Plugins_ panel, install and enable the plugin.
+
+
+h2(#tags). Tags
+
+bc. <txp:jcr_image_custom />
+
+Outputs the content of the image custom field.
+
+h3. Tag attributes
+
+*escape*
+Escape HTML entities such as @<@, @>@ and @&@ prior to echoing the field contents. 
+Example: Use @escape=""@ to suppress conversion. Default: @html@.
+
+
+h2(#examples). Example
+
+Produce a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
+
+bc. <txp:images wraptag="ul" break="li" category="videos" class="video-gallery">
+  <a href="//www.youtube.com/watch?v=<txp:jcr_image_custom />" title="<txp:image_info type="caption" />" data-lity>
+    <txp:thumbnail />
+  </a>
+</txp:images>
+
+p. where the image custom field is used to store the Video ID of the YouTube video. This example uses the "lity":http://sorgalla.com/lity/ lightbox script.
+
+
+h2. Changing the label of the custom field
+
+The name of custom field can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel panel. Enter your own information in the following pattern and click *Upload*:
+
+bc.. #@admin
+#@language en-gb
+jcr_image_custom => Your label
+
+p. replacing @en-gb@ with your own language and @Your label@ with your own desired label.
+
+
+h2(#deinstallation). De-installation
+
+The plugin cleans up after itself: deinstalling the plugin removes the extra column from the database. To stop using the plugin but keep the database tables, just disable (deactivate) the plugin but don't delete it.
+
+
+h2(#changelog). Changelog
+
+h3. Version 0.1 – 2016/04/16
+
+* First release
+
+
+h2(#credits). Credits
+
+Robert Wetzlmayr’s "wet_profile":https://github.com/rwetzlmayr/wet_profile plugin for the starting point, and further examples by "Stef Dawson":http://www.stefdawson.com and "Jukka Svahn":https://github.com/gocom.
