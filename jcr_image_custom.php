@@ -142,8 +142,8 @@ class jcr_image_custom
                 // Upgrade: Migrate v1 plugin legacy column
                 $legacy = safe_query("SHOW COLUMNS FROM " . safe_pfx("txp_image") . " LIKE 'jcr_image_custom'");
                 if (@numRows($legacy) > 0) {
-                    // Copy contents of jcr_image_custom to jcr_image_custom_1
-                    safe_update("txp_image", "`jcr_image_custom_1` = `jcr_image_custom`", "1=1");
+                    // Copy contents of jcr_image_custom to jcr_image_custom_1 (where not empty/NULL)
+                    safe_update("txp_image", "`jcr_image_custom_1` = `jcr_image_custom`", "jcr_image_custom IS NOT NULL");
                     // Delete jcr_image_custom column
                     safe_alter("txp_image", "DROP COLUMN `jcr_image_custom`");
                 }
