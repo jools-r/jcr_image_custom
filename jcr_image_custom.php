@@ -147,24 +147,6 @@ class jcr_image_custom
                     // Delete jcr_image_custom column
                     safe_alter("txp_image", "DROP COLUMN `jcr_image_custom`");
                 }
-
-                // Upgrade: Migrate from NULL to '' default value
-                $has_nulls = safe_rows_start("*", "txp_image", "`jcr_image_custom_1` IS NULL OR `jcr_image_custom_2` IS NULL OR `jcr_image_custom_3` IS NULL OR `jcr_image_custom_4` IS NULL OR `jcr_image_custom_5` IS NULL");
-                if (@numRows($has_nulls) > 0) {
-                    safe_update("txp_image", "jcr_image_custom_1 = ''", "jcr_image_custom_1 IS NULL");
-                    safe_update("txp_image", "jcr_image_custom_2 = ''", "jcr_image_custom_2 IS NULL");
-                    safe_update("txp_image", "jcr_image_custom_3 = ''", "jcr_image_custom_3 IS NULL");
-                    safe_update("txp_image", "jcr_image_custom_4 = ''", "jcr_image_custom_4 IS NULL");
-                    safe_update("txp_image", "jcr_image_custom_5 = ''", "jcr_image_custom_5 IS NULL");
-                    safe_alter(
-                        "txp_image",
-                        "MODIFY jcr_image_custom_1  VARCHAR(255) NOT NULL DEFAULT '',
-						 MODIFY jcr_image_custom_2  VARCHAR(255) NOT NULL DEFAULT '',
-						 MODIFY jcr_image_custom_3  VARCHAR(255) NOT NULL DEFAULT '',
-						 MODIFY jcr_image_custom_4  VARCHAR(255) NOT NULL DEFAULT '',
-						 MODIFY jcr_image_custom_5  VARCHAR(255) NOT NULL DEFAULT ''"
-                    );
-                }
                 break;
             case "deleted":
                 // Remove columns from image table
