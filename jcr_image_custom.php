@@ -146,6 +146,9 @@ class jcr_image_custom
                     safe_update("txp_image", "`jcr_image_custom_1` = `jcr_image_custom`", "jcr_image_custom IS NOT NULL");
                     // Delete jcr_image_custom column
                     safe_alter("txp_image", "DROP COLUMN `jcr_image_custom`");
+                    // Update language string (is seemingly not replaced by textpack)
+                    safe_update("txp_lang", "name = 'jcr_image_custom', data = 'Image custom fields'", "lang = 'en'");
+                    safe_update("txp_lang", "name = 'jcr_image_custom', data = 'Bilder Custom-Felder'", "lang = 'de'");
                 }
                 break;
             case "deleted":
