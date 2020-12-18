@@ -1,6 +1,10 @@
 h1. jcr_image_custom
 
-Adds a single extra custom field of up to 255 characters to the "Content › Images":http://docs.textpattern.io/administration/images-panel panel and provides a corresponding tag to output the custom field.
+Adds up to five extra custom fields of up to 255 characters to the "Content › Images":http://docs.textpattern.io/administration/images-panel panel along with corresponding tags to output the custom field and to test if it contains a value or matches a specific value.
+
+h3(#installation). Installation
+
+Paste the code into the _Admin › Plugins_ panel, install and enable the plugin.
 
 
 h2. Use cases
@@ -9,47 +13,103 @@ Use whenever extra information needs to be stored with an image. For example:
 
 * Store a youtube/vimeo link or video-ID with an image for generating custom video poster images.
 * Store the download url of a corresponding hi-res press image not stored in txp.
+* Store the year a picture / photograph was taken
+* Store the copyright owners name + link
 * …
-
-
-h2(#installation). Installation
-
-Paste the code into the  _Admin › Plugins_ panel, install and enable the plugin.
 
 
 h2(#tags). Tags
 
-bc. <txp:jcr_image_custom />
+h3. jcr_image_custom
 
 Outputs the content of the image custom field.
 
-h3. Tag attributes
+h4. Tag attributes
 
-*escape*
-Escape HTML entities such as @<@, @>@ and @&@ prior to echoing the field contents. 
-Example: Use @escape=""@ to suppress conversion. Default: @html@.
+@name@
+Specifies the name of the image custom field.
+Example: Use @name="copyright_author"@ to output the copyright_author custom field. Default: jcr_image_custom_1.
+
+@escape@
+Escape HTML entities such as @<@, @>@ and @&@ prior to echoing the field contents.
+Supports extended escape values in txp 4.8
+Example: Use @escape="textile"@ to convert textile in the value. Default: none.
+
+@default@
+Specifies the default output if the custom field is empty
+Example: Use @default="Org Name"@ to output "Org Name", e.g. for when no copyright_author explicitly given. Default: empty.
+
+@wraptag@
+Wrap the custom field contents in an HTML tag
+Example: Use @wraptag="h2"@ to output @<h2>Custom field value</h2>@. Default: empty.
+
+@class@
+Specifies a class to be added to the @wraptag@ attribute
+Example: Use @wraptag="p" class="copyright"@ to output @<p class="copyright">Custom field value</p>@. Default: empty
+
+h3. jcr_if_image_custom
+
+Tests for existence of an image custom field, or whether one or several matches a value or pattern.
+
+h4. Tag attributes
+
+@name@
+Specifies the name of the image custom field.
+Example: Use @name="copyright_author"@ to output the copyright_author custom field. Default: jcr_image_custom_1.
+
+@value@
+Value to test against (optional).
+If not specified, the tag tests for the existence of any value in the specified image custom field.
+Example: Use @value="english"@ to output only those images whose “language” image custom field is english. Default: none.
+
+@match@
+Match testing: exact, any, all, pattern. See the docs for “if_custom_field”:https://docs.textpattern.com/tags/if_custom_field.
+Default: exact.
+
+@separator@
+Item separator for match="any" or "all". Otherwise ignored.
+Default: empty.
 
 
-h2(#examples). Example
+h2(#examples). Examples
 
-Produce a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
+1. Output a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
 
 bc. <txp:images wraptag="ul" break="li" category="videos" class="video-gallery">
-  <a href="//www.youtube.com/watch?v=<txp:jcr_image_custom />" title="<txp:image_info type="caption" />" data-lity>
+  <a href="//www.youtube.com/watch?v=<txp:jcr_image_custom name="youtube_id" />" title="<txp:image_info type="caption" />" data-lity>
     <txp:thumbnail />
+    <txp:jcr_image_custom name="youtube_author" wraptag="p" class="author" />
   </a>
 </txp:images>
 
 p. where the image custom field is used to store the Video ID of the YouTube video. This example uses the "lity":http://sorgalla.com/lity/ lightbox script.
 
 
+2. Outputs the copyright author with or without link:
+
+bc. <txp:images wraptag="ul" break="li" class="photoset">
+  <figure class="photo">
+    <txp:image />
+    <figcaption>
+      <txp:image_info type="caption" wraptag="p" />
+      <txp:jcr_if_image_custom name="copyright_link">
+        <a href="<txp:jcr_image_custom name="copyright_link" />" class="img-owner"><txp:jcr_image_custom   name="copyright_author" /></a>
+      <txp:else />
+        <txp:jcr_image_custom name="copyright_author" wraptag="span" class="img-owner" />
+      </txp:jcr_if_image_custom>
+    </figcaption>
+  </figure>
+</txp:images>
+
+
 h2. Changing the label of the custom field
 
-The name of custom field can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel panel. Enter your own information in the following pattern and click *Upload*:
+The name of custom field can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel.html panel. Enter your own information in the following pattern and click *Upload*:
 
 bc.. #@admin
-#@language en-gb
-jcr_image_custom => Your label
+#@language en
+jcr_image_custom_1 => Your label
+jcr_image_custom_2 => Your other label
 
 p. replacing @en-gb@ with your own language and @Your label@ with your own desired label.
 
@@ -59,17 +119,14 @@ h2(#deinstallation). De-installation
 The plugin cleans up after itself: deinstalling the plugin removes the extra column from the database. To stop using the plugin but keep the database tables, just disable (deactivate) the plugin but don't delete it.
 
 
-h2(#changelog). Changelog
+h2(#changelog). Changelog + Credits
 
-h3. Version 0.1.1 – 2016/12/05
+h3. Changelog
 
-* Remedy table not being created on install 
+* Version 0.2.0 – 2020/12/17 – Expand to handle multiple custom fields
+* Version 0.1.1 – 2016/12/05 – Remedy table not being created on install
+* Version 0.1 – 2016/04/16
 
-h3. Version 0.1 – 2016/04/16
-
-* First release
-
-
-h2(#credits). Credits
+h3. Credits
 
 Robert Wetzlmayr’s "wet_profile":https://github.com/rwetzlmayr/wet_profile plugin for the starting point, and further examples by "Stef Dawson":http://www.stefdawson.com and "Jukka Svahn":https://github.com/gocom.
