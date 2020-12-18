@@ -63,11 +63,11 @@ If not specified, the tag tests for the existence of any value in the specified 
 Example: Use @value="english"@ to output only those images whose “language” image custom field is english. Default: none.
 
 @match@
-Match testing: exact, any, all, pattern. See the docs for “if_custom_field”:https://docs.textpattern.com/tags/if_custom_field.
+Match testing: exact, any, all, pattern. See the docs for "if_custom_field":https://docs.textpattern.com/tags/if_custom_field.
 Default: exact.
 
 @separator@
-Item separator for match="any" or "all". Otherwise ignored.
+Item separator for @match="any"@ or @"all"@. Otherwise ignored.
 Default: empty.
 
 
