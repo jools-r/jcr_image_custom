@@ -42,12 +42,8 @@ $plugin["type"] = "1";
 // Plugin "flags" signal the presence of optional capabilities to the core plugin loader.
 // Use an appropriately OR-ed combination of these flags.
 // The four high-order bits 0xf000 are available for this plugin's private use
-if (!defined("PLUGIN_HAS_PREFS")) {
-    define("PLUGIN_HAS_PREFS", 0x0001);
-} // This plugin wants to receive "plugin_prefs.{$plugin['name']}" events
-if (!defined("PLUGIN_LIFECYCLE_NOTIFY")) {
-    define("PLUGIN_LIFECYCLE_NOTIFY", 0x0002);
-} // This plugin wants to receive "plugin_lifecycle.{$plugin['name']}" events
+if (!defined('PLUGIN_HAS_PREFS')) define('PLUGIN_HAS_PREFS', 0x0001); // This plugin wants to receive "plugin_prefs.{$plugin['name']}" events
+if (!defined('PLUGIN_LIFECYCLE_NOTIFY')) define('PLUGIN_LIFECYCLE_NOTIFY', 0x0002); // This plugin wants to receive "plugin_lifecycle.{$plugin['name']}" events
 
 $plugin["flags"] = "3";
 
@@ -58,7 +54,11 @@ $plugin["flags"] = "3";
 // #@language ISO-LANGUAGE-CODE
 // abc_string_name => Localized String
 
-// Customise the custom field display name as follows:
+// Customise the display of the custom field form labels by pasting the following into the Textpack box
+// in Settings › Languages replacing the language code and field label names:
+// #@owner jcr_image_custom
+// #@language en, en-gb, en-us
+// #@image
 // jcr_image_custom_1 => Year
 // jcr_image_custom_2 => Image ref
 // jcr_image_custom_3 => Photographer
@@ -66,16 +66,28 @@ $plugin["flags"] = "3";
 // jcr_image_custom_5 => Background color
 
 $plugin["textpack"] = <<<EOT
-#@admin
-#@language en
+#@owner jcr_image_custom
+#@language en, en-gb, en-us
+#@prefs
 jcr_image_custom => Image custom fields
+image_custom_1_set => Image custom field 1 name
+image_custom_2_set => Image custom field 2 name
+image_custom_3_set => Image custom field 3 name
+image_custom_4_set => Image custom field 4 name
+image_custom_5_set => Image custom field 5 name
 #@language de
+#@prefs
 jcr_image_custom => Bilder Custom-Felder
+image_custom_1_set => Name des 1. Bild-Custom Feldes
+image_custom_2_set => Name des 2. Bild-Custom Feldes
+image_custom_3_set => Name des 3. Bild-Custom Feldes
+image_custom_4_set => Name des 4. Bild-Custom Feldes
+image_custom_5_set => Name des 5. Bild-Custom Feldes
 EOT;
 // End of textpack
 
 if (!defined("txpinterface")) {
-    @include_once "zem_tpl.php";
+    @include_once("zem_tpl.php");
 }
 
 # --- BEGIN PLUGIN CODE ---
@@ -86,16 +98,17 @@ class jcr_image_custom
      */
     function __construct()
     {
-        register_callback([__CLASS__, "lifecycle"], "plugin_lifecycle.jcr_image_custom");
-        register_callback([__CLASS__, "ui"], "image_ui", "extend_detail_form");
-        register_callback([__CLASS__, "save"], "image", "image_save");
+        // Hook into the system's callbacks
+        register_callback(array(__CLASS__, "lifecycle"), "plugin_lifecycle.jcr_image_custom");
+        register_callback(array(__CLASS__, "ui"), "image_ui", "extend_detail_form");
+        register_callback(array(__CLASS__, "save"), "image", "image_save");
 
         // Prefs pane for custom fields
         add_privs("prefs.jcr_image_custom", "1");
 
         // Redirect 'Options' link on plugins panel to preferences pane
         add_privs("plugin_prefs.jcr_image_custom", "1");
-        register_callback([__CLASS__, "options_prefs_redirect"], "plugin_prefs.jcr_image_custom");
+        register_callback(array(__CLASS__, "options_prefs_redirect"), "plugin_prefs.jcr_image_custom");
     }
 
     /**
@@ -114,15 +127,15 @@ class jcr_image_custom
                 break;
             case "installed":
                 // Add image custom fields to txp_image table
-                $cols_exist = safe_query("SHOW COLUMNS FROM " . safe_pfx("txp_image") . " LIKE 'jcr_image_custom_1'");
+                $cols_exist = safe_query("SHOW COLUMNS FROM " . safe_pfx("txp_image") . " LIKE 'jcr_image_custom_%'");
                 if (@numRows($cols_exist) == 0) {
                     safe_alter(
                         "txp_image",
-                        "ADD COLUMN jcr_image_custom_1 VARCHAR(255) NOT NULL DEFAULT '' AFTER thumb_h,
-						 ADD COLUMN jcr_image_custom_2 VARCHAR(255) NOT NULL DEFAULT '' AFTER jcr_image_custom_1,
-						 ADD COLUMN jcr_image_custom_3 VARCHAR(255) NOT NULL DEFAULT '' AFTER jcr_image_custom_2,
-						 ADD COLUMN jcr_image_custom_4 VARCHAR(255) NOT NULL DEFAULT '' AFTER jcr_image_custom_3,
-						 ADD COLUMN jcr_image_custom_5 VARCHAR(255) NOT NULL DEFAULT '' AFTER jcr_image_custom_4"
+                        "ADD COLUMN jcr_image_custom_1 VARCHAR(255) NOT NULL DEFAULT '',
+                         ADD COLUMN jcr_image_custom_2 VARCHAR(255) NOT NULL DEFAULT '',
+                         ADD COLUMN jcr_image_custom_3 VARCHAR(255) NOT NULL DEFAULT '',
+                         ADD COLUMN jcr_image_custom_4 VARCHAR(255) NOT NULL DEFAULT '',
+                         ADD COLUMN jcr_image_custom_5 VARCHAR(255) NOT NULL DEFAULT ''"
                     );
                 }
 
@@ -142,27 +155,33 @@ class jcr_image_custom
                 // Upgrade: Migrate v1 plugin legacy column
                 $legacy = safe_query("SHOW COLUMNS FROM " . safe_pfx("txp_image") . " LIKE 'jcr_image_custom'");
                 if (@numRows($legacy) > 0) {
-                    // Copy contents of jcr_image_custom to jcr_image_custom_1 (where not empty/NULL)
+                    // Copy contents of jcr_image_custom to jcr_image_custom_1 (where not NULL)
                     safe_update("txp_image", "`jcr_image_custom_1` = `jcr_image_custom`", "jcr_image_custom IS NOT NULL");
                     // Delete jcr_image_custom column
                     safe_alter("txp_image", "DROP COLUMN `jcr_image_custom`");
                     // Update language string (is seemingly not replaced by textpack)
-                    safe_update("txp_lang", "data = 'Image custom fields'", "name = 'jcr_image_custom' AND lang = 'en'");
-                    safe_update("txp_lang", "data = 'Bilder Custom-Felder'", "name = 'jcr_image_custom' AND lang = 'de'");
+                    safe_update("txp_lang", "data = 'Image custom fields', owner = 'jcr_image_custom'", "name = 'jcr_image_custom' AND lang = 'en'");
+                    safe_update("txp_lang", "data = 'Bilder Custom-Felder', owner = 'jcr_image_custom'", "name = 'jcr_image_custom' AND lang = 'de'");
                 }
                 break;
             case "deleted":
                 // Remove columns from image table
                 safe_alter(
                     "txp_image",
-                    'DROP COLUMN jcr_image_custom_1,
-					 DROP COLUMN jcr_image_custom_2,
-					 DROP COLUMN jcr_image_custom_3,
-					 DROP COLUMN jcr_image_custom_4,
-					 DROP COLUMN jcr_image_custom_5'
+                    "DROP COLUMN jcr_image_custom_1,
+                     DROP COLUMN jcr_image_custom_2,
+                     DROP COLUMN jcr_image_custom_3,
+                     DROP COLUMN jcr_image_custom_4,
+                     DROP COLUMN jcr_image_custom_5"
                 );
                 // Remove all prefs from event 'jcr_image_custom'.
                 remove_pref(null, "jcr_image_custom");
+
+                // Remove all associated lang strings
+                safe_delete(
+                  "txp_lang",
+                  "owner = 'jcr_image_custom'"
+                );
                 break;
         }
         return;
@@ -181,24 +200,18 @@ class jcr_image_custom
     {
         global $prefs;
 
-        extract(
-            lAtts(
-                [
-                    "jcr_image_custom_1" => "",
-                    "jcr_image_custom_2" => "",
-                    "jcr_image_custom_3" => "",
-                    "jcr_image_custom_4" => "",
-                    "jcr_image_custom_5" => "",
-                ],
-                $rs,
-                0
-            )
-        );
+        extract(lAtts(array(
+            "jcr_image_custom_1" => "",
+            "jcr_image_custom_2" => "",
+            "jcr_image_custom_3" => "",
+            "jcr_image_custom_4" => "",
+            "jcr_image_custom_5" => ""
+        ), $rs, 0));
 
         $out = "";
 
         $cfs = preg_grep("/^image_custom_\d+_set/", array_keys($prefs));
-		asort($cfs);
+        asort($cfs);
 
         foreach ($cfs as $name) {
             preg_match("/(\d+)/", $name, $match);
@@ -219,15 +232,15 @@ class jcr_image_custom
      */
     public static function save($event, $step)
     {
-        extract(doSlash(psa(["jcr_image_custom_1", "jcr_image_custom_2", "jcr_image_custom_3", "jcr_image_custom_4", "jcr_image_custom_5", "id"])));
+        extract(doSlash(psa(array("jcr_image_custom_1", "jcr_image_custom_2", "jcr_image_custom_3", "jcr_image_custom_4", "jcr_image_custom_5", "id"))));
         $id = assert_int($id);
         safe_update(
             "txp_image",
             "jcr_image_custom_1 = '$jcr_image_custom_1',
-	         jcr_image_custom_2 = '$jcr_image_custom_2',
-	         jcr_image_custom_3 = '$jcr_image_custom_3',
-	         jcr_image_custom_4 = '$jcr_image_custom_4',
-	         jcr_image_custom_5 = '$jcr_image_custom_5'",
+             jcr_image_custom_2 = '$jcr_image_custom_2',
+             jcr_image_custom_3 = '$jcr_image_custom_3',
+             jcr_image_custom_4 = '$jcr_image_custom_4',
+             jcr_image_custom_5 = '$jcr_image_custom_5'",
             "id = $id"
         );
     }
@@ -260,12 +273,13 @@ class jcr_image_custom
 
 if (txpinterface === "admin") {
     new jcr_image_custom();
-} elseif (txpinterface === "public") {
-    if (class_exists("\Textpattern\Tag\Registry")) {
-        Txp::get("\Textpattern\Tag\Registry")
-            ->register("jcr_image_custom")
-            ->register("jcr_if_image_custom");
-    }
+}
+
+// Register public tags (not restricted to public so that usable on dashboards)
+if (class_exists("\Textpattern\Tag\Registry")) {
+    Txp::get("\Textpattern\Tag\Registry")
+        ->register("jcr_image_custom")
+        ->register("jcr_if_image_custom");
 }
 
 /**
@@ -280,7 +294,7 @@ function jcr_get_image_custom_fields()
     // Have cache?
     if (!is_array($out)) {
         $cfs = preg_grep("/^image_custom_\d+_set/", array_keys($prefs));
-        $out = [];
+        $out = array();
         foreach ($cfs as $name) {
             preg_match("/(\d+)/", $name, $match);
             if ($prefs[$name] !== "") {
@@ -301,7 +315,7 @@ function jcr_get_image_custom_fields()
 function jcr_image_column_map()
 {
     $image_custom = jcr_get_image_custom_fields();
-    $image_custom_map = [];
+    $image_custom_map = array();
 
     if ($image_custom) {
         foreach ($image_custom as $i => $name) {
@@ -328,18 +342,13 @@ function jcr_image_custom($atts, $thing = null)
 
     assert_image();
 
-    extract(
-        lAtts(
-            [
-                "class" => "",
-                "name" => get_pref("image_custom_1_set"),
-                "escape" => null,
-                "default" => "",
-                "wraptag" => "",
-            ],
-            $atts
-        )
-    );
+    extract(lAtts(array(
+        "class"   => "",
+        "name"    => get_pref("image_custom_1_set"),
+        "escape"  => null,
+        "default" => "",
+        "wraptag" => "",
+    ), $atts));
 
     $name = strtolower($name);
 
@@ -349,7 +358,7 @@ function jcr_image_custom($atts, $thing = null)
     }
 
     if (!isset($thisimage[$name])) {
-        trigger_error(gTxt("field_not_found", ["{name}" => $name]), E_USER_NOTICE);
+        trigger_error(gTxt("field_not_found", array("{name}" => $name)), E_USER_NOTICE);
         return "";
     }
     $cf_num = $thisimage[$name];
@@ -359,7 +368,7 @@ function jcr_image_custom($atts, $thing = null)
         $thing = $cf_val !== "" ? $cf_val : $default;
     }
 
-    $thing = $escape === null ? txpspecialchars($thing) : parse($thing);
+    $thing = ($escape === null ? txpspecialchars($thing) : parse($thing));
 
     return !empty($thing) ? doTag($thing, $wraptag, $class) : "";
 }
@@ -379,17 +388,14 @@ function jcr_if_image_custom($atts, $thing = null)
 {
     global $thisimage;
 
-    extract(
-        $atts = lAtts(
-            [
-                "name" => get_pref("image_custom_1_set"),
-                "value" => null,
-                "match" => "exact",
-                "separator" => "",
-            ],
-            $atts
-        )
-    );
+    assert_image();
+
+    extract($atts = lAtts(array(
+        "name"      => get_pref("image_custom_1_set"),
+        "value"     => null,
+        "match"     => "exact",
+        "separator" => "",
+    ), $atts));
 
     $name = strtolower($name);
 
@@ -399,7 +405,7 @@ function jcr_if_image_custom($atts, $thing = null)
     }
 
     if (!isset($thisimage[$name])) {
-        trigger_error(gTxt("field_not_found", ["{name}" => $name]), E_USER_NOTICE);
+        trigger_error(gTxt("field_not_found", array("{name}" => $name)), E_USER_NOTICE);
         return "";
     }
     $cf_num = $thisimage[$name];
@@ -414,7 +420,8 @@ function jcr_if_image_custom($atts, $thing = null)
     return isset($thing) ? parse($thing, !empty($cond)) : !empty($cond);
 }
 # --- END PLUGIN CODE ---
-if (0) { ?>
+if (0) {
+?>
 <!--
 # --- BEGIN PLUGIN CSS ---
 
@@ -426,12 +433,7 @@ h1. jcr_image_custom
 
 Adds up to five extra custom fields of up to 255 characters to the "Content › Images":http://docs.textpattern.io/administration/images-panel panel along with corresponding tags to output the custom field and to test if it contains a value or matches a specific value.
 
-h3(#installation). Installation
-
-Paste the code into the _Admin › Plugins_ panel, install and enable the plugin.
-
-
-h2. Use cases
+h3. Use cases
 
 Use whenever extra information needs to be stored with an image. For example:
 
@@ -442,7 +444,18 @@ Use whenever extra information needs to be stored with an image. For example:
 * …
 
 
-h2(#tags). Tags
+h2. Installation / Deinstallation
+
+h3. Installation
+
+Paste the @.txt@ installer code into the _Admin › Plugins_ panel, or upload the plugin's @.php@ file via the _Upload plugin_ button, then install and enable the plugin.
+
+h3. De-installation
+
+The plugin cleans up after itself: deinstalling (deleting) the plugin removes the extra columns from the database as well as custom field names and labels. To stop using the plugin but keep the custom field data in the database, just disable (deactivate) the plugin but don't delete it.
+
+
+h2. Plugin tags
 
 h3. jcr_image_custom
 
@@ -495,9 +508,11 @@ Item separator for match="any" or "all". Otherwise ignored.
 Default: empty.
 
 
-h2(#examples). Examples
+h2. Examples
 
-1. Output a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
+h3. Example 1
+
+Output a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
 
 bc. <txp:images wraptag="ul" break="li" category="videos" class="video-gallery">
   <a href="//www.youtube.com/watch?v=<txp:jcr_image_custom name="youtube_id" />" title="<txp:image_info type="caption" />" data-lity>
@@ -508,8 +523,9 @@ bc. <txp:images wraptag="ul" break="li" category="videos" class="video-gallery">
 
 p. where the image custom field is used to store the Video ID of the YouTube video. This example uses the "lity":http://sorgalla.com/lity/ lightbox script.
 
+h3. Example 2
 
-2. Outputs the copyright author with or without link:
+Outputs the copyright author with or without link:
 
 bc. <txp:images wraptag="ul" break="li" class="photoset">
   <figure class="photo">
@@ -526,24 +542,20 @@ bc. <txp:images wraptag="ul" break="li" class="photoset">
 </txp:images>
 
 
-h2. Changing the label of the custom field
+h2. Custom field labels
 
-The name of custom field can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel.html panel. Enter your own information in the following pattern and click *Upload*:
+The label displayed alongside the custom field in the edit image panel can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel.html panel. Enter your own information in the following pattern and click *Upload*:
 
-bc.. #@admin
-#@language en
+bc. #@owner jcr_image_custom
+#@language en, en-gb, en-us
+#@image
 jcr_image_custom_1 => Your label
 jcr_image_custom_2 => Your other label
 
-p. replacing @en-gb@ with your own language and @Your label@ with your own desired label.
+p. replacing @en@ with your own language and @Your label@ with your own desired label.
 
 
-h2(#deinstallation). De-installation
-
-The plugin cleans up after itself: deinstalling the plugin removes the extra column from the database. To stop using the plugin but keep the database tables, just disable (deactivate) the plugin but don't delete it.
-
-
-h2(#changelog). Changelog + Credits
+h2. Changelog and credits
 
 h3. Changelog
 
@@ -556,5 +568,6 @@ h3. Credits
 Robert Wetzlmayr’s "wet_profile":https://github.com/rwetzlmayr/wet_profile plugin for the starting point, and further examples by "Stef Dawson":http://www.stefdawson.com and "Jukka Svahn":https://github.com/gocom.
 # --- END PLUGIN HELP ---
 -->
-<?php }
+<?php
+}
 ?>
