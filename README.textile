@@ -2,12 +2,7 @@ h1. jcr_image_custom
 
 Adds up to five extra custom fields of up to 255 characters to the "Content › Images":http://docs.textpattern.io/administration/images-panel panel along with corresponding tags to output the custom field and to test if it contains a value or matches a specific value.
 
-h3(#installation). Installation
-
-Paste the code into the _Admin › Plugins_ panel, install and enable the plugin.
-
-
-h2. Use cases
+h3. Use cases
 
 Use whenever extra information needs to be stored with an image. For example:
 
@@ -18,7 +13,22 @@ Use whenever extra information needs to be stored with an image. For example:
 * …
 
 
-h2(#tags). Tags
+h2. Installation / Deinstallation / Upgrading
+
+h3. Installation
+
+Paste the @.txt@ installer code into the _Admin › Plugins_ panel, or upload the plugin's @.php@ file via the _Upload plugin_ button, then install and enable the plugin.
+
+h3. Upgrading
+
+The plugin automatically migrates custom field data and the database structure from the earlier single custom field variant (v0.1) to the new format. No changes are needed to the public tags as the new default settings correspond to the old tag. Nevertheless, it is always advisable to make a database backup before upgrading.
+
+h3. De-installation
+
+The plugin cleans up after itself: deinstalling (deleting) the plugin removes the extra columns from the database as well as custom field names and labels. To stop using the plugin but keep the custom field data in the database, just disable (deactivate) the plugin but don't delete it.
+
+
+h2. Plugin tags
 
 h3. jcr_image_custom
 
@@ -63,17 +73,19 @@ If not specified, the tag tests for the existence of any value in the specified 
 Example: Use @value="english"@ to output only those images whose “language” image custom field is english. Default: none.
 
 @match@
-Match testing: exact, any, all, pattern. See the docs for "if_custom_field":https://docs.textpattern.com/tags/if_custom_field.
+Match testing: exact, any, all, pattern. See the docs for “if_custom_field”:https://docs.textpattern.com/tags/if_custom_field.
 Default: exact.
 
 @separator@
-Item separator for @match="any"@ or @"all"@. Otherwise ignored.
+Item separator for match="any" or "all". Otherwise ignored.
 Default: empty.
 
 
-h2(#examples). Examples
+h2. Examples
 
-1. Output a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
+h3. Example 1
+
+Output a gallery of custom video poster-images (from images assigned to the image category "videos") that open a corresponding youtube video (defined in the image custom field) in a lightbox modal:
 
 bc. <txp:images wraptag="ul" break="li" category="videos" class="video-gallery">
   <a href="//www.youtube.com/watch?v=<txp:jcr_image_custom name="youtube_id" />" title="<txp:image_info type="caption" />" data-lity>
@@ -84,8 +96,9 @@ bc. <txp:images wraptag="ul" break="li" category="videos" class="video-gallery">
 
 p. where the image custom field is used to store the Video ID of the YouTube video. This example uses the "lity":http://sorgalla.com/lity/ lightbox script.
 
+h3. Example 2
 
-2. Outputs the copyright author with or without link:
+Outputs the copyright author with or without link:
 
 bc. <txp:images wraptag="ul" break="li" class="photoset">
   <figure class="photo">
@@ -102,24 +115,20 @@ bc. <txp:images wraptag="ul" break="li" class="photoset">
 </txp:images>
 
 
-h2. Changing the label of the custom field
+h2. Custom field labels
 
-The name of custom field can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel.html panel. Enter your own information in the following pattern and click *Upload*:
+The label displayed alongside the custom field in the edit image panel can be changed by specifying a new label using the _Install from Textpack_ field in the "Admin › Languages":http://docs.textpattern.io/administration/languages-panel.html panel. Enter your own information in the following pattern and click *Upload*:
 
-bc.. #@admin
-#@language en
+bc. #@owner jcr_image_custom
+#@language en, en-gb, en-us
+#@image
 jcr_image_custom_1 => Your label
 jcr_image_custom_2 => Your other label
 
-p. replacing @en-gb@ with your own language and @Your label@ with your own desired label.
+p. replacing @en@ with your own language and @Your label@ with your own desired label.
 
 
-h2(#deinstallation). De-installation
-
-The plugin cleans up after itself: deinstalling the plugin removes the extra column from the database. To stop using the plugin but keep the database tables, just disable (deactivate) the plugin but don't delete it.
-
-
-h2(#changelog). Changelog + Credits
+h2. Changelog and credits
 
 h3. Changelog
 
